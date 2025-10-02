@@ -6,7 +6,7 @@
     - common
     - docker
     - app
--name: Configure NGINX Load Balancer
+- name: Configure NGINX Load Balancer
   hosts: loadbalancers
   become: yes
   roles:
