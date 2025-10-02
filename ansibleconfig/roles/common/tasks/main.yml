@@ -1,8 +1,0 @@
-- name: Install basic packages
-  yum:
-    name: "{{ item }}"
-    state: present
-  loop:
-    - git
-    - curl
-    - unzip
