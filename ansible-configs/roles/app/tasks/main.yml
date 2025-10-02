@@ -13,5 +13,5 @@
 - name: Run frontend container
   shell: |
     docker run -d --name frontend -p 80:80 \      
-    -e API_URL="http://3.237.101.138:8080" \    
+    -e API_URL="http://3.226.249.137:8080" \    
       dharanimohan22/frontend:latest
