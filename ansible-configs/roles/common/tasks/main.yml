@@ -6,6 +6,5 @@
     - git
     - curl
     - unzip
-      - java-1.8.0-openjdk
-      - nodejs
-  state: present
+    - java-1.8.0-openjdk
+    - nodejs
