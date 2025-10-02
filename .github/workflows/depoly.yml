@@ -24,7 +24,7 @@ jobs:
 
       - name: Add EC2 to known_hosts
         run: |
-          ssh-keyscan -H 3.237.101.138 >> ~/.ssh/known_hosts
+          ssh-keyscan -H 3.226.249.137 >> ~/.ssh/known_hosts
 
       - name: Install Ansible
         run: |
@@ -40,4 +40,3 @@ jobs:
 
           
 
-            
