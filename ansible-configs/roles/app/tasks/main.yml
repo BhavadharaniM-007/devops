@@ -1,0 +1,17 @@
+- name: Pull backend image
+  shell: docker pull dharanimohan22/backend:latest
+
+- name: Run backend container
+  shell: |
+    docker run -d --name backend -p 8080:8080 \      
+    -e DB_URL="terraform-20250928071333940600000001.cw32uow6qn9p.us-east-1.rds.amazonaws.com" \   
+       dharanimohan22/backend:latest
+
+- name: Pull frontend image
+  shell: docker pull dharanimohan22frontend:latest
+
+- name: Run frontend container
+  shell: |
+    docker run -d --name frontend -p 80:80 \      
+    -e API_URL="http://3.237.101.138:8080" \    
+      dharanimohan22/frontend:latest
