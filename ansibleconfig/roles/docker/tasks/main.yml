@@ -1,0 +1,16 @@
+- name: Install Docker
+  yum:
+    name: docker
+    state: present
+
+- name: Enable and start Docker
+  service:
+    name: docker
+    state: started
+    enabled: true
+
+- name: Add user to docker group
+  user:
+    name: ec2-user
+    groups: docker
+    append: yes
