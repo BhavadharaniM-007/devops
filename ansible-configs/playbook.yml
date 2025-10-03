@@ -1,13 +1,32 @@
 - name: Configure EC2 instance and deploy app
-  hosts: app
-  become: true
-
-  roles:
-    - common
-    - docker
-    - app
-- name: Configure NGINX Load Balancer
-  hosts: loadbalancers
+  hosts: all
   become: yes
-  roles:
-    - nginx
+
+  tasks:
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Start Docker service
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Pull Docker image for backend
+      docker_image:
+        name: dharanimohan22/backend-app
+        source: pull
+
+    - name: Run backend container
+      docker_container:
+        name: backend
+        image: dharanimohan22/backend-app
+        state: started
+        restart_policy: always
+        env:
+          ENV_VAR_NAME: value
+
+    # Add similar tasks for frontend, NGINX config, SSL certs, etc.
