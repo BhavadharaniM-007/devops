@@ -13,8 +13,8 @@ jobs:
       - name: Setup SSH key
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa_github_actions
-          chmod 600 ~/.ssh/id_rsa_github_actions
+          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa_github_action
+          chmod 600 ~/.ssh/id_rsa_github_action
           
       - name: Add EC2 to known_hosts
         run: |
@@ -29,7 +29,7 @@ jobs:
         run: |
             ansible-playbook -i ansible-configs/inventory.ini ansible-configs/playbook.yml
         env:
-           ANSIBLE_PRIVATE_KEY_FILE: ~/.ssh/id_rsa_github_actions    
+           ANSIBLE_PRIVATE_KEY_FILE: ~/.ssh/id_rsa_github_action    
 
 
           
