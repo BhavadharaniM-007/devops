@@ -26,10 +26,10 @@ jobs:
           sudo apt install -y ansible
 
       - name: Run Ansible Playbook
-        env:
-          ANSIBLE_HOST_KEY_CHECKING: "False"
         run: |
             ansible-playbook -i ansible-configs/inventory.ini ansible-configs/playbook.yml
+        env:
+           ANSIBLE_PRIVATE_KEY_FILE: ~/.ssh/id_rsa_github_actions    
 
 
           

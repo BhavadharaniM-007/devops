@@ -1,10 +1,22 @@
-- name: Install basic packages
-  yum:
-    name: "{{ item }}"
+- name: Update apt packages
+  apt:
+    update_cache: yes
+    force_apt_get: yes
+  become: yes
+
+- name: Install dependencies
+  apt:
+    name:
+      - openjdk-11-jdk
+      - nodejs
+      - npm
+      - docker.io
     state: present
-  loop:
-    - git
-    - curl
-    - unzip
-    - java-1.8.0-openjdk
-    - nodejs
+  become: yes
+
+- name: Add user to Docker group
+  user:
+    name: "{{ ansible_user }}"
+    groups: docker
+    append: yes
+  become: yes
