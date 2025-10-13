@@ -40,20 +40,20 @@ jobs:
         run: terraform -chdir=terraform_backend apply -auto-approve
 
       # ───────────────────────────────
-      # Step 2: Apply terraform_infra
+      # Step 2: Apply terraform
       # ───────────────────────────────
-      - name: Terraform Init (Infra)
-        run: terraform -chdir=terraform_infra init -reconfigure
+      - name: Terraform Init 
+        run: terraform -chdir=terraform init -reconfigure
 
-      - name: Terraform Format (Infra)
-        run: terraform -chdir=terraform_infra fmt
+      - name: Terraform Format
+        run: terraform -chdir=terraform fmt
 
-      - name: Terraform Validate (Infra)
-        run: terraform -chdir=terraform_infra validate
+      - name: Terraform Validate 
+        run: terraform -chdir=terraform validate
 
-      - name: Terraform Plan (Infra)
-        run: terraform -chdir=terraform_infra plan -out=tfplan
+      - name: Terraform Plan
+        run: terraform -chdir=terraform plan -out=tfplan
 
-      - name: Terraform Apply (Infra)
+      - name: Terraform Appl
         if: success()
-        run: terraform -chdir=terraform_infra apply -auto-approve tfplan
+        run: terraform -chdir=terraform apply -auto-approve tfplan
