@@ -1,33 +1,59 @@
-name: Deploy with Ansible
+name: Terraform CI/CD
 
 on:
-  workflow_dispatch:  # Allows manual trigger from GitHub UI
+  push:
+    branches: 
+      - main
+  workflow_dispatch:
 
 jobs:
-  deploy:
+  terraform:
+    name: Terraform Deployment
     runs-on: ubuntu-latest
 
+    env:
+      AWS_REGION: us-east-1
+
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3 
-      - name: Setup SSH key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa_github_actions
-          chmod 600 ~/.ssh/id_rsa_github_actions
-          
-      - name: Add EC2 to known_hosts
-        run: |
-          ssh-keyscan -H 3.239.216.100 >> ~/.ssh/known_hosts
-          ssh-keyscan -H 313.220.33.232 >> ~/.ssh/known_hosts
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      - name: Install Ansible
-        run: |
-          sudo apt update
-          sudo apt install -y ansible
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.6.6
 
-      - name: Run Ansible Playbook
-        run: |
-            ansible-playbook -i ansible-configs/inventory.ini ansible-configs/playbook.yml --private-key /home/runner/.ssh/id_rsa_github_actions
-          
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
+      # ───────────────────────────────
+      # Step 1: Apply terraform_backend
+      # ───────────────────────────────
+      - name: Terraform Init (Backend)
+        run: terraform -chdir=terraform_backend init
+
+      - name: Terraform Apply (Backend)
+        run: terraform -chdir=terraform_backend apply -auto-approve
+
+      # ───────────────────────────────
+      # Step 2: Apply terraform_infra
+      # ───────────────────────────────
+      - name: Terraform Init (Infra)
+        run: terraform -chdir=terraform_infra init -reconfigure
+
+      - name: Terraform Format (Infra)
+        run: terraform -chdir=terraform_infra fmt
+
+      - name: Terraform Validate (Infra)
+        run: terraform -chdir=terraform_infra validate
+
+      - name: Terraform Plan (Infra)
+        run: terraform -chdir=terraform_infra plan -out=tfplan
+
+      - name: Terraform Apply (Infra)
+        if: success()
+        run: terraform -chdir=terraform_infra apply -auto-approve tfplan
