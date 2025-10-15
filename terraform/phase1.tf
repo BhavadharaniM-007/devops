@@ -23,7 +23,7 @@ data "aws_vpc" "existing" {
 # ───────────────
 resource "aws_subnet" "public_az1" {
   vpc_id                  = data.aws_vpc.existing.id
-  cidr_block              = "10.0.32.0/24"
+  cidr_block              = "10.0.87.0/24"
   availability_zone       = "us-east-1a"
   map_public_ip_on_launch = true
   tags = {
@@ -33,7 +33,7 @@ resource "aws_subnet" "public_az1" {
 
 resource "aws_subnet" "public_az2" {
   vpc_id                  = data.aws_vpc.existing.id
-  cidr_block              = "10.0.92.0/24"
+  cidr_block              = "10.0.78.0/24"
   availability_zone       = "us-east-1b"
   map_public_ip_on_launch = true
   tags = {
@@ -75,7 +75,7 @@ resource "aws_route_table_association" "public_assoc_az2" {
 # Security Groups
 # ───────────────
 resource "aws_security_group" "web_sg" {
-  name        = "web-sg-new-final"
+  name        = "web-sg-new-finaldevops-11191910202567"
   description = "Allow inbound traffic to EC2"
   vpc_id      = data.aws_vpc.existing.id
 
@@ -148,7 +148,7 @@ resource "aws_security_group" "web_sg" {
 }
 
 resource "aws_security_group" "rds_sg" {
-  name        = "rds-sg-final"
+  name        = "rds-sg-finaldevopsgrp-98989898912"
   description = "Allow MySQL traffic from EC2"
   vpc_id      = data.aws_vpc.existing.id
 
@@ -179,8 +179,9 @@ resource "aws_instance" "web_server" {
   instance_type               = "t3.micro"
   subnet_id                   = aws_subnet.public_az1.id
   vpc_security_group_ids      = [aws_security_group.web_sg.id]
+  associate_public_ip_address = true              
   iam_instance_profile        = aws_iam_instance_profile.ec2_instance_profile.name
-
+   key_name      = "devops"   
   tags = {
     Name = "TerraformWebServer"
   }
@@ -190,7 +191,7 @@ resource "aws_instance" "web_server" {
 # IAM Role for EC2
 # ───────────────
 resource "aws_iam_role" "ec2_role" {
-  name = "ec2-role-dev-new2002"
+  name = "ec2-roledevops-20028787876"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
@@ -210,7 +211,7 @@ resource "aws_iam_role_policy_attachment" "ecr_read" {
 }
 
 resource "aws_iam_instance_profile" "ec2_instance_profile" {
-  name = "ec2_instance_profile_new-finaldev"
+  name = "ec2_profile_12133278"
   role = aws_iam_role.ec2_role.name
 }
 
@@ -218,7 +219,7 @@ resource "aws_iam_instance_profile" "ec2_instance_profile" {
 # RDS MySQL Instance
 # ───────────────
 resource "aws_db_subnet_group" "default" {
-  name       = "main-db-subnetdevops"
+  name       = "maindevsample-298767"
   subnet_ids = [aws_subnet.public_az1.id, aws_subnet.public_az2.id]
 
   tags = {
