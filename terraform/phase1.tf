@@ -23,7 +23,7 @@ data "aws_vpc" "existing" {
 # ───────────────
 resource "aws_subnet" "public_az1" {
   vpc_id                  = data.aws_vpc.existing.id
-  cidr_block              = "10.0.87.0/24"
+  cidr_block              = "10.0.33.0/24"
   availability_zone       = "us-east-1a"
   map_public_ip_on_launch = true
   tags = {
@@ -33,7 +33,7 @@ resource "aws_subnet" "public_az1" {
 
 resource "aws_subnet" "public_az2" {
   vpc_id                  = data.aws_vpc.existing.id
-  cidr_block              = "10.0.78.0/24"
+  cidr_block              = "10.0.66.0/24"
   availability_zone       = "us-east-1b"
   map_public_ip_on_launch = true
   tags = {
@@ -75,7 +75,7 @@ resource "aws_route_table_association" "public_assoc_az2" {
 # Security Groups
 # ───────────────
 resource "aws_security_group" "web_sg" {
-  name        = "web-sg-new-finaldevops-11191910202567"
+  name        = "web-sg-new-098789876545"
   description = "Allow inbound traffic to EC2"
   vpc_id      = data.aws_vpc.existing.id
 
@@ -148,7 +148,7 @@ resource "aws_security_group" "web_sg" {
 }
 
 resource "aws_security_group" "rds_sg" {
-  name        = "rds-sg-finaldevopsgrp-98989898912"
+  name        = "rds-sg-final-6767432"
   description = "Allow MySQL traffic from EC2"
   vpc_id      = data.aws_vpc.existing.id
 
@@ -191,7 +191,7 @@ resource "aws_instance" "web_server" {
 # IAM Role for EC2
 # ───────────────
 resource "aws_iam_role" "ec2_role" {
-  name = "ec2-roledevops-20028787876"
+  name = "ec2-roledevops126789-dev"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
@@ -211,7 +211,7 @@ resource "aws_iam_role_policy_attachment" "ecr_read" {
 }
 
 resource "aws_iam_instance_profile" "ec2_instance_profile" {
-  name = "ec2_profile_12133278"
+  name = "ec2_profile7654612341107"
   role = aws_iam_role.ec2_role.name
 }
 
@@ -219,7 +219,7 @@ resource "aws_iam_instance_profile" "ec2_instance_profile" {
 # RDS MySQL Instance
 # ───────────────
 resource "aws_db_subnet_group" "default" {
-  name       = "maindevsample-298767"
+  name       = "maindevsample-20978"
   subnet_ids = [aws_subnet.public_az1.id, aws_subnet.public_az2.id]
 
   tags = {
