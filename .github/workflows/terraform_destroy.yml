@@ -79,5 +79,5 @@ jobs:
           fi
 
           - name: Final confirmation
-        run: |
-          echo "✅ All Terraform-managed infra, S3 bucket, and DynamoDB backend cleaned up successfully!"
+             run: |
+              echo "✅ All Terraform-managed infra, S3 bucket, and DynamoDB backend cleaned up successfully!"
