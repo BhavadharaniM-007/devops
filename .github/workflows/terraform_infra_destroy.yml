@@ -1,0 +1,41 @@
+name: Terraform Infra Destroy
+
+on:
+  workflow_dispatch:
+
+jobs:
+  destroy:
+    name: Destroy Terraform Infrastructure
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_REGION: us-east-1
+      S3_BUCKET: tfbhava-2002
+      DYNAMO_TABLE: tf-state-locks
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.7
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init
+        working-directory: terraform_infra
+        run: terraform init -input=false -reconfigure
+
+      - name: Terraform Destroy
+        working-directory: terraform_infra
+        run: terraform destroy -auto-approve
+
+      - name: Destroy Complete
+        run: echo "✅ Infrastructure destroy completed successfully."
