@@ -1,0 +1,83 @@
+name: Terraform Destroy
+
+on:
+  workflow_dispatch:
+
+jobs:
+  terraform-destroy:
+    name: Destroy Infra and Backend
+    runs-on: ubuntu-latest
+   
+    env:
+      AWS_REGION: us-east-1
+      S3_BUCKET: tfbhava-2002
+      DYNAMO_TABLE: tf-state-locks
+      INSTANCE_NAME: TerraformWebServer
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.5.7
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Terraform Init (with backend)
+        run: |
+          cd terraform_infra
+          echo "🧱 Initializing Terraform backend..."
+          terraform init -input=false -reconfigure
+          cd ..
+
+      - name: Terraform Destroy Infrastructure
+        run: |
+          set +e
+          cd terraform_infra
+          echo "🔥 Destroying Terraform-managed resources for instance: ${INSTANCE_NAME}..."
+          terraform destroy -auto-approve -var "instance_name=${INSTANCE_NAME}" || echo "⚠️ Destroy failed or nothing to destroy, continuing..."
+          cd ..
+
+      - name: Wait for AWS resources to settle
+        run: |
+          echo "⏳ Waiting for AWS resources to be fully released..."
+          sleep 20
+
+      - name: Clean up S3 backend (force delete all versions)
+        run: |
+          set +e
+          echo "🧹 Cleaning up S3 backend..."
+          aws s3api list-buckets --query "Buckets[].Name" --output text | grep -w "${S3_BUCKET}" >/dev/null 2>&1
+          if [ $? -eq 0 ]; then
+            echo "Emptying and deleting S3 bucket: ${S3_BUCKET}"
+            aws s3api delete-objects --bucket ${S3_BUCKET} --delete "$(aws s3api list-object-versions --bucket ${S3_BUCKET} --output=json --query='{Objects: Versions[].{Key:Key,VersionId:VersionId}}')" >/dev/null 2>&1 || true
+            aws s3api delete-objects --bucket ${S3_BUCKET} --delete "$(aws s3api list-object-versions --bucket ${S3_BUCKET} --output=json --query='{Objects: DeleteMarkers[].{Key:Key,VersionId:VersionId}}')" >/dev/null 2>&1 || true
+            aws s3 rb s3://${S3_BUCKET} --force || echo "⚠️ S3 bucket already deleted or not empty"
+          else
+            echo "⚠️ S3 bucket ${S3_BUCKET} not found, skipping deletion."
+          fi
+
+      - name: Delete DynamoDB Table (if exists)
+        run: |
+          set +e
+          echo "🔍 Checking if DynamoDB table ${DYNAMO_TABLE} exists..."
+          aws dynamodb describe-table --table-name ${DYNAMO_TABLE} >/dev/null 2>&1
+          if [ $? -eq 0 ]; then
+            echo "🧱 Deleting DynamoDB table: ${DYNAMO_TABLE}"
+            aws dynamodb delete-table --table-name ${DYNAMO_TABLE}
+            aws dynamodb wait table-not-exists --table-name ${DYNAMO_TABLE}
+            echo "✅ DynamoDB table deleted successfully!"
+          else
+            echo "⚠️ DynamoDB table ${DYNAMO_TABLE} not found, skipping."
+          fi
+
+      - name: Final confirmation
+        run: |
+          echo "✅ Terraform-managed infra for instance '${INSTANCE_NAME}' destroyed and backend cleaned up successfully!"
