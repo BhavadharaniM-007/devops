@@ -30,7 +30,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Terraform Init
-        working-directory: terraform_
+        working-directory: terraform
         run: terraform init -input=false -reconfigure
 
       - name: Terraform Destroy
