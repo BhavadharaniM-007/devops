@@ -12,7 +12,7 @@ jobs:
       AWS_REGION: us-east-1
       S3_BUCKET: tfbhava-2002
       DYNAMO_TABLE: tf-state-locks
-      INSTANCE_NAME: TerraformWebServer
+     
       
     steps:
       - name: Checkout code
