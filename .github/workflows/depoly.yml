@@ -3,13 +3,6 @@ name: Terraform CI/CD
 on:
   issue_comment:
     types: [created]
-  workflow_dispatch:
-  push:
-    branches:
-      - test
-  pull_request:
-    branches:
-      - test
 
 permissions:
   contents: read
@@ -18,30 +11,29 @@ permissions:
 
 jobs:
   terraform:
-    name: Terraform Plan & Apply (Test)
-    if: >
-      github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'push' ||
-      (
-        github.event.issue.pull_request &&
-        (
-          contains(github.event.comment.body, '/plan') ||
-          contains(github.event.comment.body, '/apply')
-        )
-      )
+    name: Terraform Plan/Apply (sample Branch)
     runs-on: ubuntu-latest
+    if: |
+      github.event.issue.pull_request != null &&
+      (contains(github.event.comment.body, '/plan') || contains(github.event.comment.body, '/apply'))
+
     env:
       AWS_REGION: us-east-1
 
     steps:
-      - name: Checkout repository
+      # Step 1️⃣: Checkout PR source branch (sample)
+      - name: Checkout PR branch
         uses: actions/checkout@v3
+        with:
+          ref: refs/heads/sample
 
+      # Step 2️⃣: Setup Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.6.6
 
+      # Step 3️⃣: Configure AWS credentials
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -50,29 +42,63 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       # ───────────────────────────────
-      # Step 1: Apply terraform_backend
+      # Step 4: Terraform Backend
       # ───────────────────────────────
       - name: Terraform Init (Backend)
         run: terraform -chdir=terraform_backend init
 
+      - name: Terraform Plan (Backend)
+        run: terraform -chdir=terraform_backend plan -no-color -out=tfplan > backend_plan.txt
+
       - name: Terraform Apply (Backend)
-        run: terraform -chdir=terraform_backend apply -auto-approve
+        if: contains(github.event.comment.body, '/apply')
+        run: terraform -chdir=terraform_backend apply -auto-approve tfplan -no-color > backend_apply.txt
 
       # ───────────────────────────────
-      # Step 2: Apply terraform
+      # Step 5: Terraform 
       # ───────────────────────────────
-      - name: Terraform Init 
+      - name: Terraform Init (Infra)
         run: terraform -chdir=terraform init -reconfigure
 
-      - name: Terraform Format
-        run: terraform -chdir=terraform fmt
+      - name: Terraform Plan (Infra)
+        run: terraform -chdir=terraform plan -no-color -out=tfplan > infra_plan.txt
 
-      - name: Terraform Validate 
-        run: terraform -chdir=terraform validate
+      - name: Terraform Apply (Infra)
+        if: contains(github.event.comment.body, '/apply')
+        run: terraform -chdir=terraform apply -auto-approve tfplan -no-color > infra_apply.txt
 
-      - name: Terraform Plan
-        run: terraform -chdir=terraform plan -out=tfplan
+      # ───────────────────────────────
+      # Step 6: Post output back to PR
+      # ───────────────────────────────
+      - name: Post Terraform Output to PR
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const planBackend = fs.existsSync('backend_plan.txt') ? fs.readFileSync('backend_plan.txt', 'utf8') : '';
+            const planInfra = fs.existsSync('infra_plan.txt') ? fs.readFileSync('infra_plan.txt', 'utf8') : '';
+            const applyBackend = fs.existsSync('backend_apply.txt') ? fs.readFileSync('backend_apply.txt', 'utf8') : '';
+            const applyInfra = fs.existsSync('infra_apply.txt') ? fs.readFileSync('infra_apply.txt', 'utf8') : '';
 
-      - name: Terraform Appl
-        if: success()
-        run: terraform -chdir=terraform apply -auto-approve tfplan
+            const action = context.payload.comment.body.includes('/apply') ? 'Apply' : 'Plan';
+            const output = `### Terraform ${action} Results (Testing Branch)
+
+             **Backend**
+              \`\`\`
+${action === 'Apply' ? applyBackend : planBackend}
+\`\`\`
+
+**Infrastructure**
+\`\`\`
+${action === 'Apply' ? applyInfra : planInfra}
+\`\`\`
+`;
+
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: output
+            });
