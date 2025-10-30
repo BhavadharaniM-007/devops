@@ -2,7 +2,7 @@ name: Terraform CI/CD
 
 on:
   issue_comment:
-    types: [created]
+    types: [ created ]
 
 permissions:
   contents: read
@@ -11,30 +11,30 @@ permissions:
 
 jobs:
   terraform:
-    name: Terraform Plan/Apply (sample Branch)
+    name: Terraform Plan/Apply (sample branch)
     runs-on: ubuntu-latest
     if: |
       github.event.issue.pull_request != null &&
-      (contains(github.event.comment.body, '/plan') || contains(github.event.comment.body, '/apply'))
+      ( contains(github.event.comment.body, '/plan') || contains(github.event.comment.body, '/apply') )
 
     env:
       AWS_REGION: us-east-1
 
     steps:
-      # Step 1️⃣: Checkout PR source branch (sample)
+      # Step 1️⃣ Checkout PR source branch
       - name: Checkout PR branch
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name }}
 
-      # Step 2️⃣: Setup Terraform
+      # Step 2️⃣ Setup Terraform
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.6.6
 
-      # Step 3️⃣: Configure AWS credentials
+      # Step 3️⃣ Configure AWS credentials
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
@@ -42,9 +42,9 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # ───────────────────────────────
-      # Step 4: Terraform Backend
-      # ───────────────────────────────
+      # ─────────────────────────────────────
+      # Step 4: Terraform Backend Folder
+      # ─────────────────────────────────────
       - name: Terraform Init (Backend)
         run: terraform -chdir=terraform_backend init
 
@@ -55,9 +55,9 @@ jobs:
         if: contains(github.event.comment.body, '/apply')
         run: terraform -chdir=terraform_backend apply -auto-approve tfplan -no-color > backend_apply.txt 2>&1
 
-      # ───────────────────────────────
-      # Step 5: Terraform Infrastructure
-      # ───────────────────────────────
+      # ─────────────────────────────────────
+      # Step 5: Terraform Infrastructure Folder
+      # ─────────────────────────────────────
       - name: Terraform Init (Infra)
         run: terraform -chdir=terraform init -reconfigure
 
@@ -68,9 +68,9 @@ jobs:
         if: contains(github.event.comment.body, '/apply')
         run: terraform -chdir=terraform apply -auto-approve tfplan -no-color > infra_apply.txt 2>&1
 
-      # ───────────────────────────────
+      # ─────────────────────────────────────
       # Step 6: Post output back to PR
-      # ───────────────────────────────
+      # ─────────────────────────────────────
       - name: Post Terraform Output to PR
         if: always()
         uses: actions/github-script@v7
@@ -78,28 +78,24 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const fs = require('fs');
-
-            const planBackend = fs.existsSync('backend_plan.txt') ? fs.readFileSync('backend_plan.txt', 'utf8') : '';
-            const planInfra = fs.existsSync('infra_plan.txt') ? fs.readFileSync('infra_plan.txt', 'utf8') : '';
-            const applyBackend = fs.existsSync('backend_apply.txt') ? fs.readFileSync('backend_apply.txt', 'utf8') : '';
-            const applyInfra = fs.existsSync('infra_apply.txt') ? fs.readFileSync('infra_apply.txt', 'utf8') : '';
+            const planBackend  = fs.existsSync('backend_plan.txt')  ? fs.readFileSync('backend_plan.txt','utf8') : '';
+            const planInfra    = fs.existsSync('infra_plan.txt')    ? fs.readFileSync('infra_plan.txt','utf8')   : '';
+            const applyBackend = fs.existsSync('backend_apply.txt') ? fs.readFileSync('backend_apply.txt','utf8'): '';
+            const applyInfra   = fs.existsSync('infra_apply.txt')   ? fs.readFileSync('infra_apply.txt','utf8')  : '';
 
             const action = context.payload.comment.body.includes('/apply') ? 'Apply' : 'Plan';
+            const truncate = text => text.length > 60000 ? text.slice(0,60000) + "\n... (truncated)" : text;
 
-            // Truncate long outputs for safety
-            const truncate = text => text.length > 60000 ? text.slice(0, 60000) + "\n... (truncated)" : text;
+            const output = `### 🧱 Terraform ${action} Results (sample branch)
+            **Backend**\`\`\`
+${truncate(action === 'Apply' ? applyBackend  : planBackend)}
+\`\`\`
 
-            const output = `###  Terraform ${action} Results (sample branch)
-
-            **Backend**
-                   \`\`\`
-                   ${truncate(action === 'Apply' ? applyBackend : planBackend)}
-                   \`\`\`
-
-             **Infrastructure**
-                    \`\`\`
-                            ${truncate(action === 'Apply' ? applyInfra : planInfra)}
-                    \`\`\`;
+**Infrastructure**
+\`\`\`
+${truncate(action === 'Apply' ? applyInfra   : planInfra)}
+\`\`\`
+`;
 
             await github.rest.issues.createComment({
               issue_number: context.issue.number,
