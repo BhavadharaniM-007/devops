@@ -17,7 +17,7 @@ permissions:
 
 jobs:
   terraform:
-    name: Terraform Plan & Apply (Test)
+    name: Terraform Plan & Apply (PR Trigger)
     runs-on: ubuntu-latest
 
     env:
@@ -72,12 +72,12 @@ jobs:
           terraform -chdir=terraform init -reconfigure
           terraform -chdir=terraform fmt
           terraform -chdir=terraform validate
-          terraform -chdir=terraform plan -no-color -out=tfplan | tee plan.txt
+          terraform -chdir=terraform plan -no-color | tee plan.txt
           {
             echo '### 🧩 Terraform Plan Result'
             echo '<details><summary>Click to view full plan logs</summary>'
             echo ''
-            echo '```'
+            echo '```hcl'
             cat plan.txt
             echo '```'
             echo '</details>'
@@ -89,7 +89,7 @@ jobs:
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          number: ${{ steps.pr.outputs.number }}
+          number: ${{ steps.pr.outputs.number || github.event.issue.number }}
           header: 🧩 Terraform Plan Output
           path: plan_comment.md
           recreate: true
@@ -101,12 +101,15 @@ jobs:
           github.event_name == 'workflow_dispatch' ||
           (github.event_name == 'issue_comment' && contains(github.event.comment.body, '/apply'))
         run: |
-          terraform -chdir=terraform apply -auto-approve tfplan | tee apply.txt
+          terraform -chdir=terraform init -reconfigure
+          terraform -chdir=terraform fmt
+          terraform -chdir=terraform validate
+          terraform -chdir=terraform apply -auto-approve -no-color | tee apply.txt
           {
             echo '### 🚀 Terraform Apply Result'
             echo '<details><summary>Click to view full apply logs</summary>'
             echo ''
-            echo '```'
+            echo '```hcl'
             cat apply.txt
             echo '```'
             echo '</details>'
@@ -118,7 +121,7 @@ jobs:
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          number: ${{ steps.pr.outputs.number }}
+          number: ${{ steps.pr.outputs.number || github.event.issue.number }}
           header: 🚀 Terraform Apply Output
           path: apply_comment.md
           recreate: true
