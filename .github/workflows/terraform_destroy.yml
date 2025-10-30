@@ -32,7 +32,7 @@ jobs:
 
       - name: Terraform Init (with backend)
         run: |
-          cd terraform_infra
+          cd terraform
           echo "🧱 Initializing Terraform backend..."
           terraform init -input=false -reconfigure
           cd ..
@@ -40,7 +40,7 @@ jobs:
       - name: Terraform Destroy Infrastructure
         run: |
           set +e
-          cd terraform_infra
+          cd terraform
           echo "🔥 Destroying Terraform-managed resources for instance: ${INSTANCE_NAME}..."
           terraform destroy -auto-approve -var "instance_name=${INSTANCE_NAME}" || echo "⚠️ Destroy failed or nothing to destroy, continuing..."
           cd ..
@@ -78,6 +78,6 @@ jobs:
             echo "⚠️ DynamoDB table ${DYNAMO_TABLE} not found, skipping."
           fi
 
-      - name: Final confirmation
-        run: |
-          echo "✅ Terraform-managed infra for instance '${INSTANCE_NAME}' destroyed and backend cleaned up successfully!"
+          - name: Final confirmation
+             run: |
+              echo "✅ All Terraform-managed infra, S3 bucket, and DynamoDB backend cleaned up successfully!"
