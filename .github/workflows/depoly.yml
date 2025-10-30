@@ -2,22 +2,23 @@ name: Terraform CI/CD (sample Branch)
 
 on:
   pull_request:
-    branches: 
-       -sample 
-       -main
+    branches:
+      - sample
+      - main
   issue_comment:
-    types: 
-      -created
+    types:
+      - created
   workflow_dispatch:
+
 permissions:
-      contents: read
-      pull-requests: write
-      issues: write
-  
+  contents: read
+  pull-requests: write
+  issues: write
+
 jobs:
   terraform:
     name: Terraform Plan & Apply (Test)
-    runs-on: ubuntu-latest  
+    runs-on: ubuntu-latest
 
     env:
       AWS_REGION: us-east-1
@@ -25,29 +26,30 @@ jobs:
     if: |
       github.event_name == 'pull_request' ||
       (github.event_name == 'issue_comment' &&
-        (contains(github.event.comment.body, '/plan') ||
-         contains(github.event.comment.body, '/apply')))
+       github.event.issue.pull_request != null &&
+       (contains(github.event.comment.body, '/plan') ||
+        contains(github.event.comment.body, '/apply')))
 
     steps:
-      # Checkout repo
+      # ─────────── Checkout Repo ───────────
       - uses: actions/checkout@v4
-       with:
+        with:
           ref: ${{ github.event.pull_request.head.ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name }}
 
-      # Setup Terraform
+      # ─────────── Setup Terraform ───────────
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.6.6
 
-      # Configure AWS credentials
+      # ─────────── Configure AWS credentials ───────────
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # Get PR number (only for PR runs)
+      # ─────────── Get PR number ───────────
       - id: pr
         uses: jwalton/gh-find-current-pr@v1
         with:
@@ -81,9 +83,9 @@ jobs:
             echo '</details>'
           } > plan_comment.md
 
-      # Post Plan Output to PR
+      # ─────────── Post Plan Output to PR ───────────
       - name: Post Plan Output
-        if:  steps.plan.conclusion == 'success'
+        if: steps.plan.conclusion == 'success'
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -99,7 +101,7 @@ jobs:
           github.event_name == 'workflow_dispatch' ||
           (github.event_name == 'issue_comment' && contains(github.event.comment.body, '/apply'))
         run: |
-          terraform -chdir=terraform_infra apply -auto-approve tfplan | tee apply.txt
+          terraform -chdir=terraform apply -auto-approve tfplan | tee apply.txt
           {
             echo '### 🚀 Terraform Apply Result'
             echo '<details><summary>Click to view full apply logs</summary>'
@@ -110,9 +112,9 @@ jobs:
             echo '</details>'
           } > apply_comment.md
 
-      # Post Apply Output to PR
+      # ─────────── Post Apply Output to PR ───────────
       - name: Post Apply Output
-        if:  steps.apply.conclusion == 'success'
+        if: steps.apply.conclusion == 'success'
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
