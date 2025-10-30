@@ -1,4 +1,4 @@
-name: Terraform CI/CD (Test Branch)
+name: Terraform CI/CD (sample Branch)
 
 on:
   pull_request:
