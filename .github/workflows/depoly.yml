@@ -72,7 +72,7 @@ jobs:
           terraform -chdir=terraform init -reconfigure
           terraform -chdir=terraform fmt
           terraform -chdir=terraform validate
-          terraform -chdir=terraform plan -no-color -out=tfplan | tee plan.txt
+          terraform -chdir=terraform plan -no-color | tee plan.txt
           {
             echo '### 🧩 Terraform Plan Result'
             echo '<details><summary>Click to view full plan logs</summary>'
@@ -89,7 +89,7 @@ jobs:
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          number: ${{ steps.pr.outputs.number }}
+          number: ${{ steps.pr.outputs.number || github.event.issue.number }}
           header: 🧩 Terraform Plan Output
           path: plan_comment.md
           recreate: true
@@ -104,7 +104,7 @@ jobs:
           terraform -chdir=terraform init -reconfigure
           terraform -chdir=terraform fmt
           terraform -chdir=terraform validate
-          terraform -chdir=terraform apply -auto-approve | tee apply.txt
+          terraform -chdir=terraform apply -auto-approve -no-color | tee apply.txt
           {
             echo '### 🚀 Terraform Apply Result'
             echo '<details><summary>Click to view full apply logs</summary>'
@@ -114,13 +114,14 @@ jobs:
             echo '```'
             echo '</details>'
           } > apply_comment.md
+
       # ─────────── Post Apply Output to PR ───────────
       - name: Post Apply Output
         if: steps.apply.conclusion == 'success'
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          number: ${{ steps.pr.outputs.number }}
+          number: ${{ steps.pr.outputs.number || github.event.issue.number }}
           header: 🚀 Terraform Apply Output
           path: apply_comment.md
           recreate: true
