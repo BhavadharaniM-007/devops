@@ -2,20 +2,22 @@ name: Terraform CI/CD (sample Branch)
 
 on:
   pull_request:
-    branches: [sample]
+    branches: 
+       -sample 
+       -main
   issue_comment:
-    types: [created]
+    types: 
+      -created
   workflow_dispatch:
-
+permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+  
 jobs:
   terraform:
     name: Terraform Plan & Apply (Test)
-    runs-on: ubuntu-latest
-
-    permissions:
-      contents: read
-      pull-requests: write
-      issues: read
+    runs-on: ubuntu-latest  
 
     env:
       AWS_REGION: us-east-1
@@ -29,6 +31,9 @@ jobs:
     steps:
       # Checkout repo
       - uses: actions/checkout@v4
+       with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
 
       # Setup Terraform
       - uses: hashicorp/setup-terraform@v3
@@ -78,7 +83,7 @@ jobs:
 
       # Post Plan Output to PR
       - name: Post Plan Output
-        if: steps.pr.outputs.number != '' && steps.plan.conclusion == 'success'
+        if:  steps.plan.conclusion == 'success'
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -107,7 +112,7 @@ jobs:
 
       # Post Apply Output to PR
       - name: Post Apply Output
-        if: steps.pr.outputs.number != '' && steps.apply.conclusion == 'success'
+        if:  steps.apply.conclusion == 'success'
         uses: marocchino/sticky-pull-request-comment@v2
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
