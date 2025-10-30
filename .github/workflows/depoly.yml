@@ -83,6 +83,14 @@ jobs:
             echo '</details>'
           } > plan_comment.md
 
+      # ─────────── Upload Plan Artifact ───────────
+      - name: Upload Plan Artifact
+        if: steps.plan.conclusion == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: tfplan
+          path: terraform/tfplan
+
       # ─────────── Post Plan Output to PR ───────────
       - name: Post Plan Output
         if: steps.plan.conclusion == 'success'
@@ -94,17 +102,21 @@ jobs:
           path: plan_comment.md
           recreate: true
 
+      # ─────────── Download Plan Artifact ───────────
+      - name: Download Plan Artifact
+        if: github.event_name == 'issue_comment' && contains(github.event.comment.body, '/apply')
+        uses: actions/download-artifact@v4
+        with:
+          name: tfplan
+          path: terraform/
+
       # ─────────── Terraform Apply ───────────
       - name: Terraform Apply
         id: apply
-        if: |
-          github.event_name == 'workflow_dispatch' ||
-          (github.event_name == 'issue_comment' && contains(github.event.comment.body, '/apply'))
+        if: github.event_name == 'issue_comment' && contains(github.event.comment.body, '/apply')
         run: |
           terraform -chdir=terraform init -reconfigure
-          terraform -chdir=terraform fmt
-          terraform -chdir=terraform validate
-          terraform -chdir=terraform apply -auto-approve | tee apply.txt
+          terraform -chdir=terraform apply -auto-approve tfplan | tee apply.txt
           {
             echo '### 🚀 Terraform Apply Result'
             echo '<details><summary>Click to view full apply logs</summary>'
