@@ -1,0 +1,23 @@
+import "tfplan"
+
+# detect any wide-open security group inbound rule
+violations = []
+
+for resource in tfplan["resource_changes"] {
+    if resource["type"] == "aws_security_group" or
+       resource["type"] == "aws_security_group_rule" {
+
+        after = resource["change"]["after"]
+        if after is null { continue }
+
+        if "ingress" in after {
+            for rule in after["ingress"] {
+                if rule["cidr_blocks"] contains "0.0.0.0/0" {
+                    violations.append(resource["address"])
+                }
+            }
+        }
+    }
+}
+
+main = rule { length(violations) == 0 }

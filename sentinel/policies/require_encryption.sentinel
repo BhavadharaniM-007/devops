@@ -1,0 +1,36 @@
+import "tfplan/v2" as tfplan
+
+# Collect resources
+resources = tfplan.resources
+
+unencrypted = []
+
+for r in resources {
+
+    after = r.change.after else null
+    if after is null { continue }
+
+    # 1. S3 Buckets must have encryption enabled
+    if r.type is "aws_s3_bucket" {
+        if not after.contains_key("server_side_encryption_configuration") {
+            unencrypted.append("${r.address} (S3 bucket)")
+        }
+    }
+
+    # 2. EBS Volumes must be encrypted
+    if r.type is "aws_ebs_volume" {
+        if not after.contains_key("encrypted") or after.encrypted is false {
+            unencrypted.append("${r.address} (EBS volume)")
+        }
+    }
+
+    # 3. RDS DB Instances must be encrypted
+    if r.type is "aws_db_instance" {
+        if not after.contains_key("storage_encrypted") or after.storage_encrypted is false {
+            unencrypted.append("${r.address} (RDS instance)")
+        }
+    }
+}
+
+# Policy passes only if list is empty
+main = rule { length(unencrypted) == 0 }
