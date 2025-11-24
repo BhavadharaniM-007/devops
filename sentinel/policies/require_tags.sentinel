@@ -1,0 +1,27 @@
+import "tfplan/v2" as tfplan
+
+# Required tags
+required_tags = ["Owner", "Environment"]
+
+# Collect all resources from plan
+resources = tfplan.resources
+
+# Check if required tags exist on each resource
+violations = resources.filter(func(r) {
+    # Only check resources being created/updated
+    if r.change.after is null { return false }
+
+    tags = r.change.after.tags else {}
+    
+    # Check missing required tags
+    for req in required_tags {
+        if not tags.contains_key(req) {
+            return true
+        }
+    }
+
+    return false
+})
+
+# Policy must pass only if 0 violations
+main = rule { length(violations) == 0 }
